@@ -1,0 +1,47 @@
+# Binaries (build results)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go build cache
+*.log
+*.tmp
+*.bak
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Go workspace
+bin/
+pkg/
+
+# Dependency directories
+vendor/
+
+# Environment files
+.env
+.env.*
+!.env.example  
+
+# Fiber-specific (optional: if you log files or tmp uploads)
+uploads/
+tmp/
+logs/
+
+# Coverage / Test
+*.coverprofile
+coverage.out
+
+# Go modules (keep go.mod and go.sum)
+# (don't ignore these — required for dependencies)
