@@ -247,22 +247,38 @@ _Requires Authentication_
 
 ```json
 {
+  "pagination": {
+    "limit": 20,
+    "page": 1,
+    "total": 3,
+    "total_pages": 1
+  },
   "users": [
     {
-      "id": "2",
-      "username": "jane",
-      "bio": "Hello!",
-      "avatar": "avatar_url",
+      "id": "004",
+      "username": "son2",
+      "bio": null,
+      "avatar": null,
       "online": true,
-      "last_seen": "2024-01-20T10:25:00Z"
+      "last_seen": null
+    },
+    {
+      "id": "005",
+      "username": "son1",
+      "bio": null,
+      "avatar": null,
+      "online": true,
+      "last_seen": null
+    },
+    {
+      "id": "006",
+      "username": "son3",
+      "bio": null,
+      "avatar": null,
+      "online": true,
+      "last_seen": null
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 50,
-    "total_pages": 3
-  }
+  ]
 }
 ```
 
