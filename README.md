@@ -33,7 +33,7 @@ NgobrolYuk adalah aplikasi chat real-time yang dibangun menggunakan Go (Golang) 
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/Adisonsmn/ngobrolyuk.git
+git clone https://github.com/Adisonsmn/ngobrol_yuk
 cd ngobrolyuk
 ```
 
