@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -107,5 +108,42 @@ func WebSocketRateLimit() fiber.Handler {
 		}()
 
 		return c.Next()
+	}
+}
+
+func DebugMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		start := time.Now()
+
+		// Log request details
+		fmt.Printf("\n=== REQUEST DEBUG ===\n")
+		fmt.Printf("Method: %s\n", c.Method())
+		fmt.Printf("Path: %s\n", c.Path())
+		fmt.Printf("Query: %s\n", c.Request().URI().QueryString())
+		fmt.Printf("User-Agent: %s\n", c.Get("User-Agent"))
+		fmt.Printf("IP: %s\n", c.IP())
+
+		// Check if user is authenticated
+		userID := c.Locals("user_id")
+		if userID != nil {
+			fmt.Printf("User ID: %s\n", userID.(string))
+		} else {
+			fmt.Printf("User ID: Not authenticated\n")
+		}
+
+		fmt.Printf("===================\n")
+
+		// Continue to next handler
+		err := c.Next()
+
+		// Log response details
+		duration := time.Since(start)
+		fmt.Printf("\n=== RESPONSE DEBUG ===\n")
+		fmt.Printf("Status: %d\n", c.Response().StatusCode())
+		fmt.Printf("Duration: %v\n", duration)
+		fmt.Printf("Response Size: %d bytes\n", len(c.Response().Body()))
+		fmt.Printf("=====================\n")
+
+		return err
 	}
 }

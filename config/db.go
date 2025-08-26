@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var DB *mongo.Database
@@ -59,7 +59,7 @@ func ConnectDB() {
 	DB = client.Database("ngobrolyuk")
 
 	// Create indexes
-	createIndexes()
+	createIndexes(DB)
 
 	log.Println("Successfully connected to MongoDB")
 }
@@ -76,54 +76,55 @@ func DisconnectDB() {
 		}
 	}
 }
+func createIndexes(db *mongo.Database) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-func createIndexes() {
-	ctx := context.Background()
+	userCollection := db.Collection("users")
+	messageCollection := db.Collection("messages")
 
-	// Users collection indexes
+	// ✅ Indexes untuk users
 	userIndexes := []mongo.IndexModel{
 		{
-			Keys:    bson.D{{"email", 1}},
+			Keys:    bson.D{{Key: "username", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 		{
-			Keys:    bson.D{{"username", 1}},
+			Keys:    bson.D{{Key: "email", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 		{
-			Keys: bson.D{{"online", 1}, {"last_seen", -1}},
+			Keys: bson.D{{Key: "online", Value: 1}, {Key: "last_seen", Value: -1}},
 		},
 	}
-
-	_, err := DB.Collection("users").Indexes().CreateMany(ctx, userIndexes)
-	if err != nil {
+	if _, err := userCollection.Indexes().CreateMany(ctx, userIndexes); err != nil {
 		log.Printf("Failed to create user indexes: %v", err)
+		return err
 	}
 
-	// Messages collection indexes
+	// ✅ Indexes untuk messages
 	messageIndexes := []mongo.IndexModel{
 		{
 			Keys: bson.D{
-				{"sender_id", 1},
-				{"receiver_id", 1},
-				{"created_at", -1},
+				{Key: "sender_id", Value: 1},
+				{Key: "receiver_id", Value: 1},
+				{Key: "created_at", Value: -1},
 			},
 		},
 		{
 			Keys: bson.D{
-				{"receiver_id", 1},
-				{"read", 1},
+				{Key: "receiver_id", Value: 1},
+				{Key: "read", Value: 1},
 			},
 		},
 		{
-			Keys: bson.D{{"created_at", -1}},
+			Keys: bson.D{{Key: "created_at", Value: -1}},
 		},
 	}
-
-	_, err = DB.Collection("messages").Indexes().CreateMany(ctx, messageIndexes)
-	if err != nil {
+	if _, err := messageCollection.Indexes().CreateMany(ctx, messageIndexes); err != nil {
 		log.Printf("Failed to create message indexes: %v", err)
+		return err
 	}
 
-	log.Println("Database indexes created successfully")
+	return nil
 }

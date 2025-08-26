@@ -9,6 +9,7 @@ import (
 	"github.com/Adisonsmn/ngobrolyuk/models"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -102,9 +103,13 @@ func UpdateProfile(c *fiber.Ctx) error {
 		"message": "Profile updated successfully",
 	})
 }
-
 func ListUsers(c *fiber.Ctx) error {
-	currentUserID := c.Locals("user_id").(string)
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid user id",
+		})
+	}
 
 	// Query parameters
 	online := c.Query("online")
@@ -115,18 +120,21 @@ func ListUsers(c *fiber.Ctx) error {
 	if limit > 100 {
 		limit = 100 // Prevent large queries
 	}
-
 	skip := (page - 1) * limit
 
 	// Build filter
-	filter := bson.M{
-		"_id": bson.M{"$ne": currentUserID}, // Exclude current user
+	filter := bson.M{}
+
+	// Exclude current user
+	if objID, err := primitive.ObjectIDFromHex(userID); err == nil {
+		filter["_id"] = bson.M{"$ne": objID}
+	} else {
+		filter["_id"] = bson.M{"$ne": userID}
 	}
 
 	if online == "true" {
 		filter["online"] = true
 	}
-
 	if search != "" {
 		filter["$or"] = []bson.M{
 			{"username": bson.M{"$regex": search, "$options": "i"}},
@@ -134,38 +142,50 @@ func ListUsers(c *fiber.Ctx) error {
 		}
 	}
 
-	// Find users with pagination
+	// ✅ Use bson.D for sorting (ordered)
 	opts := options.Find().
 		SetSkip(int64(skip)).
 		SetLimit(int64(limit)).
-		SetSort(bson.M{"online": -1, "last_seen": -1}) // Online users first, then by last seen
+		SetSort(bson.D{
+			{Key: "online", Value: -1},
+			{Key: "last_seen", Value: -1},
+		})
 
 	cursor, err := config.DB.Collection("users").Find(context.Background(), filter, opts)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to fetch users",
+			"error":   "Failed to fetch users",
+			"details": err.Error(),
 		})
 	}
 	defer cursor.Close(context.Background())
 
 	var users []fiber.Map
 	for cursor.Next(context.Background()) {
-		var user models.User
-		if err := cursor.Decode(&user); err != nil {
+		var raw bson.M
+		if err := cursor.Decode(&raw); err != nil {
 			continue
 		}
 
+		// Convert _id ke string
+		id := ""
+		if oid, ok := raw["_id"].(primitive.ObjectID); ok {
+			id = oid.Hex()
+		} else if str, ok := raw["_id"].(string); ok {
+			id = str
+		}
+
 		users = append(users, fiber.Map{
-			"id":        user.ID,
-			"username":  user.Username,
-			"bio":       user.Bio,
-			"avatar":    user.Avatar,
-			"online":    user.Online,
-			"last_seen": user.LastSeen,
+			"id":        id,
+			"username":  raw["username"],
+			"bio":       raw["bio"],
+			"avatar":    raw["avatar"],
+			"online":    raw["online"],
+			"last_seen": raw["last_seen"],
 		})
 	}
 
-	// Get total count for pagination
+	// Total count
 	total, _ := config.DB.Collection("users").CountDocuments(context.Background(), filter)
 
 	return c.JSON(fiber.Map{
