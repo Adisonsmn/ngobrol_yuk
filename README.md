@@ -34,7 +34,7 @@ NgobrolYuk adalah aplikasi chat real-time yang dibangun menggunakan Go (Golang) 
 
 ```bash
 git clone https://github.com/Adisonsmn/ngobrol_yuk
-cd ngobrolyuk
+cd ngobrol_yuk
 ```
 
 ### 2. Install Dependencies
