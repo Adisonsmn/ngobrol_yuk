@@ -134,7 +134,7 @@ func (h *Hub) run() {
 	}
 }
 
-func WebSocketChat(c *websocket.Conn) {
+func TestWebSocketChat(c *websocket.Conn) {
 	// Get token from query param
 	tokenStr := c.Query("token")
 	if tokenStr == "" {
@@ -194,6 +194,32 @@ func WebSocketChat(c *websocket.Conn) {
 	// Start goroutines
 	go client.writePump()
 	client.readPump() // readPump akan block sampai connection closed
+}
+
+func WebSocketChatWithAuth(c *websocket.Conn, userID string) {
+	// Check if user already connected
+	hub.mu.RLock()
+	if existingClient, exists := hub.Clients[userID]; exists {
+		log.Printf("User %s already connected, closing previous connection", userID)
+		existingClient.Conn.Close()
+		close(existingClient.Send)
+		delete(hub.Clients, userID)
+	}
+	hub.mu.RUnlock()
+
+	// Create client
+	client := &Client{
+		Conn:   c,
+		UserID: userID,
+		Send:   make(chan models.Message, 1024),
+	}
+
+	log.Printf("Registering user %s", userID)
+	hub.Register <- client
+
+	// Start goroutines
+	go client.writePump()
+	client.readPump() // blocks until disconnect
 }
 
 func (c *Client) writePump() {

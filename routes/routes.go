@@ -85,7 +85,21 @@ func SetupRoutes(app *fiber.App) {
 	chat.Get("/unread", controllers.GetUnreadCount)          // Get unread count
 
 	// WebSocket route (token in query param)
-	app.Get("/ws", websocket.New(controllers.WebSocketChat))
+	// Apply Protect middleware to /ws
+	app.Use("/ws", middleware.Protect)
+
+	// Now define WebSocket route
+	app.Get("/ws", websocket.New(func(c *websocket.Conn) {
+		// Now we can safely access user_id
+		userID, ok := c.Locals("user_id").(string)
+		if !ok {
+			c.Close()
+			return
+		}
+
+		// Pass userID to your controller
+		controllers.WebSocketChatWithAuth(c, userID)
+	}))
 
 	// 404 handler
 	app.Use(func(c *fiber.Ctx) error {
